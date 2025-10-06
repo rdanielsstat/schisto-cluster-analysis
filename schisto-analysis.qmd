@@ -16,8 +16,6 @@ format:
 
 # Description
 
-The GitHub repository for this project is located here: 
-
 This project presents an independent analysis of publicly available field data from a schistosomiasis cluster randomized trial (CRT). The data can be downloaded [here](https://datadryad.org/dataset/doi:10.7272/Q6DZ06J3){target="_blank"}, and the study is described in [@Won2017] which can be accessed [here](https://pmc.ncbi.nlm.nih.gov/articles/PMC5462587/){target="_blank"}.
 
 The project demonstrates a statistical analysis workflow while showcasing modern data science tools, including:
