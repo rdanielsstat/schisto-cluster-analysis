@@ -1,0 +1,52 @@
+# R and RStudio files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.Rproj
+
+# Project-specific directories
+articles/
+assessment/
+
+# renv package management
+renv/
+renv.lock
+
+# Quarto / R Markdown build artifacts
+*_cache/
+cache/
+*_files/
+*.utf8.md
+*.knit.md
+*.nb.html
+
+# Logs and temporary files
+
+*.log
+*.tmp
+*.bak
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Other hidden files (general safety)
+
+.Rapp.history
+.Rprofile
+.Renviron
+
+# Python virtual environments (if ever used)
+
+.venv/
+venv/
+
+# Miscellaneous
+
+*.swp
+*.swo
+*.out
+*.zip
+*.tar.gz
+*.Rout

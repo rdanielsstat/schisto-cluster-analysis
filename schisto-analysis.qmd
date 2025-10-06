@@ -1,0 +1,689 @@
+---
+title: "Schistosomiasis cluster randomized trial analysis"
+author: "Rob Daniels"
+date: "`r Sys.Date()`"
+bibliography: bibliography/references.bib
+csl: bibliography/apa.csl
+nocite: "@*"
+format: 
+  html:
+    code-fold: true
+    output-file: index.html
+    toc: true
+    toc-floating: true
+    self-contained: true
+---
+
+# Description
+
+The GitHub repository for this project is located here: 
+
+This project presents an independent analysis of publicly available field data from a schistosomiasis cluster randomized trial (CRT). The data can be downloaded [here](https://datadryad.org/dataset/doi:10.7272/Q6DZ06J3){target="_blank"}, and the study is described in [@Won2017] which can be accessed [here](https://pmc.ncbi.nlm.nih.gov/articles/PMC5462587/){target="_blank"}.
+
+The project demonstrates a statistical analysis workflow while showcasing modern data science tools, including:
+
+- **Version control & reproducibility:** GitHub, Quarto, Markdown, bibliographic integration, `renv`, and structured workflows
+- **Statistical programming:** R
+- **Visualization & reporting:** manuscript-quality tables, HTML, `ggplot2`
+- **Statistical methods:** linear model, diagnostics, GEE, permutation tests
+
+Many organizational ideas were inspired by the [Proctor Foundation Data Science Handbook](https://proctor-ucsf.github.io/dcc-handbook/){target="_blank"} and [R for Data Science (2e)](https://r4ds.hadley.nz/){target="_blank"}. For questions or feedback, feel free to reach out at [rdanielsstat@gmail.com](mailto:rdanielsstat@gmail.com).
+
+```{r}
+#| label: setup
+#| echo: true
+#| results: "hide"
+#| include: false
+source("./0-config.R")
+source("./R/0-project-functions.R")
+```
+
+# Read and process the data
+
+This study is comprised of measurements from 3,663 pre-school age children (PSAC) from 30 villages in Western Kenya. Two blood tests and one stool test were used to assess infection with *Schistosoma* spp., the parasites that cause [schistosomiasis](https://www.cdc.gov/dpdx/schistosomiasis/index.html){target="_blank"}. Data were collected at three different times: in 2012 (before treatment began), and again in 2013 and 2014 (after treatment started). The study was designed as a cluster randomized trial, meaning that entire villages, not individual children, were randomly assigned to one of two treatment arms. In 15 villages, treatment was provided only through schools (SBT), while in the other 15 villages, treatment was offered to the whole community (CWT).
+
+Read, merge, and show data set details.
+
+```{r}
+#| label: read_data
+#| echo: true
+# Read in data
+mbita_psac <- read.csv(paste0(data_path, "/mbita_schisto.csv"))
+mbita_spatial <- read.csv(paste0(data_path, "/mbita_spatial.csv"))
+
+# Merge
+mbita_schisto <- mbita_psac %>%
+  left_join(mbita_spatial, by = "vid")
+
+# Data set details
+str(mbita_schisto)
+```
+
+Define factors and derived variables. Run summary descriptives for full data set.
+
+```{r}
+#| label: process_data
+#| echo: true
+# Additional processing
+mbita_schisto <- mbita_schisto %>%
+  mutate(
+    pid  = as.character(pid),
+    arm  = factor(arm, levels = c("SBT", "CWT")),
+    # SBT as reference group
+    sex  = factor(sex, levels = c("male", "female")),
+    male = ifelse(sex == "male", 1, 0),
+    # either sea or sm25 positive:
+    sea_or_sm25_pos = ifelse(sea_pos == 1 |
+                               sm25_pos == 1, 1, 0),
+    agecat = cut(
+      agey,
+      breaks = c(0, 1, 2, 3, 4, 5, 6),
+      labels = c("<1 year", "1 year", "2 years", "3 years", "4 years", 
+                 "5 years")
+    ),
+    # create indicator for baseline/post intervention
+    post = ifelse(year %in% c(2013, 2014), 1, 0)
+  )
+
+# View data
+# View(mbita_schisto)
+
+# Full data set summary
+summary(mbita_schisto)
+```
+
+# Describe the data
+
+The following table shows the number of pre-school age children (PSAC) per year and study arm. The summary statistics are based on counts of PSAC per village (cluster).
+
+```{r}
+#| label: psac_counts
+#| echo: true
+
+mbita_schisto %>%
+  group_by(year, arm, vid) %>%
+  summarize(n_psac = n_distinct(pid), .groups = "drop") %>%
+  group_by(year, arm) %>%
+  summarize(
+    n_villages  = n(), 
+    total_psac  = sum(n_psac), 
+    mean_psac   = round(mean(n_psac), 1), 
+    sd_psac     = round(sd(n_psac), 1), 
+    min_psac    = min(n_psac), 
+    q1_psac     = quantile(n_psac, 0.25), 
+    median_psac = median(n_psac), 
+    q3_psac     = quantile(n_psac, 0.75), 
+    max_psac    = max(n_psac),
+    .groups = "drop"
+  ) %>%
+  knitr::kable(
+    col.names = c("Year", "Arm", "No. villages", "Total PSAC", 
+                  "Mean PSAC", "SD PSAC", "Min PSAC", "Q1 PSAC",
+                  "Median PSAC", "Q3 PSAC", "Max PSAC"))
+```
+
+On average, there were 36–48 PSAC per village at each survey time point, with a minimum of 9 observed at one time point and a maximum of 75 observed at two time points.
+
+The table below shows the percentage of missing values for blood- and stool-based measures (SEA, Sm25, and Sm-EPG) by year and study arm, summarized across clusters. There are no missing data for the blood-based measures; missing data occur only for the stool-based measure (Sm-EPG), which is summarized below.
+
+```{r}
+#| label: na_summaries
+#| echo: true
+# Aggregates missing values per year, arm, and cluster (vid), then summarizes
+# across clusters
+make_na_summary <- function(data, var) {
+  var <- enquo(var)
+  
+  data %>%
+    group_by(year, arm, vid) %>%
+    summarize(
+      n_psac           = n_distinct(pid),
+      measurements_var = sum(!is.na(!!var)),
+      na_var           = sum(is.na(!!var)),
+      pct_na_var       = 100 * na_var / n_psac,
+      .groups = "drop"
+    ) %>%
+    group_by(year, arm) %>%
+    summarize(
+      n_villages     = n(),
+      n_psac         = sum(n_psac),
+      n_measurements = sum(measurements_var),
+      na_total       = sum(na_var),
+      mean_pct_na    = round(mean(pct_na_var), 1),
+      sd_pct_na      = round(sd(pct_na_var), 1),
+      min_pct_na     = round(min(pct_na_var), 1),
+      q1_pct_na      = round(quantile(pct_na_var, 0.25), 1),
+      median_pct_na  = round(median(pct_na_var), 1),
+      q3_pct_na      = round(quantile(pct_na_var, 0.75), 1),
+      max_pct_na     = round(max(pct_na_var), 1),
+      .groups = "drop"
+    ) %>%
+    mutate(variable = quo_name(var), .before = 1)
+}
+
+make_na_summary(mbita_schisto, sm_epg) %>%
+  knitr::kable(
+    col.names = c("Variable", "Year", "Arm", "No. villages", "Total PSAC", 
+                  "No. measurements", "No. NA (total)", "Mean % NA", "SD % NA",
+                  "Min % NA", "Q1 % NA", "Median % NA", "Q3 % NA", "Max % NA")
+  )
+```
+In 2014, the community-wide treatment (CWT) arm had 13.5% missing values (98 of 725 total), with one village showing as much as 29% missing.
+
+The following tables show the counts of SEA and Sm-EPG measurements, respectively, along with their missing values, for each year.
+
+```{r}
+#| label: meas_summaries
+#| echo: true
+# Summarizes counts of measurements and missing values per year
+make_meas_summary <- function(data, var) {
+  var <- enquo(var)
+  
+  data %>%
+    group_by(year) %>%
+    summarize(
+      n_psac         = n_distinct(pid),
+      n_measurements = sum(!is.na(!!var)),
+      na_var         = sum(is.na(!!var)),
+      pct_na_var     = round(100 * na_var / n_psac, 1),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      n_psac         = format(n_psac, big.mark = ","),
+      n_measurements = format(n_measurements, big.mark = ","),
+      variable = quo_name(var),
+      .before = 1
+    )
+}
+
+make_meas_summary(mbita_schisto, sea) %>%
+  knitr::kable(
+    col.names = c("Variable", "Year", "No. PSAC", "No. measurements", "No. NA", 
+                  "% NA")
+  )
+make_meas_summary(mbita_schisto, sm_epg) %>%
+  knitr::kable(
+    col.names = c("Variable", "Year", "No. PSAC", "No. measurements", "No. NA", 
+                  "% NA")
+  )
+```
+For the blood-based measurements, there were 1,120, 1,187, and 1,356 pre-school age children (PSAC) at baseline, 2013, and 2014, respectively, with no missing data. For the stool-based measurement, there were 1,072, 1,172, and 1,182 PSAC at baseline, 2013, and 2014, respectively, with 4.3%, 1.3%, and 12.8% of values missing at each time point.
+
+The following table shows prevalence (SEA, Sm25, and KK positivity) by age category for all pre-school age children (PSAC).
+
+```{r}
+#| label: prev_by_age
+#| echo: true
+mbita_schisto %>%
+  group_by(agecat) %>%
+  summarize(n_sea_or_sm25 = sum(!is.na(sea_or_sm25_pos)),
+            n_sea_or_sm25_pos = sum(sea_or_sm25_pos),
+            n_kk = sum(!is.na(kk_pos)),
+            n_kk_pos = sum(kk_pos, na.rm = TRUE),
+            .groups = "drop") %>%
+  mutate(sea_or_sm25_prev = 
+           sprintf("%1.1f", n_sea_or_sm25_pos / n_sea_or_sm25 * 100),
+         kk_prev =  sprintf("%1.1f", n_kk_pos / n_kk * 100),
+         group = as.character(agecat)) %>%
+  select(group, n_sea_or_sm25, n_sea_or_sm25_pos, sea_or_sm25_prev,
+         n_kk, n_kk_pos, kk_prev) %>%
+  kable(align = c("l", "r", "r", "r", "r", "r", "r"),
+        col.names = c("Group", "No. SEA/Sm25 measurements", 
+                      "No. SEA/Sm25 positive", "SEA/Sm25 prevalence (%)", 
+                      "No. KK measurements", "No. KK positive", 
+                      "KK prevalence (%)")) %>%
+  kable_styling(full_width = FALSE) %>%
+  column_spec(1, extra_css = "white-space: nowrap;")
+```
+There appears to be a strong relationship between age and prevalence.
+
+The following tables shows summary statistics for the quantitative variable SEA at year, arm level.
+
+```{r}
+#| label: sea_cont
+#| echo: true
+# Summarizes continuous blood- and stool-based measurements per year and arm,
+# pooled across PSAC
+make_cont_summary <- function(data, var) {
+  var <- enquo(var)
+  
+  data %>%
+    group_by(year, arm) %>%
+    summarize(
+      n_psac     = n_distinct(pid),
+      n_measures = sum(!is.na(!!var)),
+      mean       = round(mean(!!var, na.rm = TRUE), 1),
+      sd         = round(sd(!!var, na.rm = TRUE), 1),
+      min        = round(min(!!var, na.rm = TRUE), 1),
+      q1         = round(quantile(!!var, 0.25, na.rm = TRUE), 1),
+      median     = round(median(!!var, na.rm = TRUE), 1),
+      q3         = round(quantile(!!var, 0.75, na.rm = TRUE), 1),
+      max        = round(max(!!var, na.rm = TRUE), 1),
+      .groups = "drop"
+    ) %>%
+    mutate(variable = quo_name(var), .before = 1)
+}
+make_cont_summary(mbita_schisto, sea) %>%
+  knitr::kable(
+    col.names = c("Variable", "Year", "Arm", "No. PSAC", "No. measurements",
+                  "Mean", "SD", "Min", "Q1", "Median", "Q3", "Max")
+  )
+```
+
+<br>
+Construct a histogram for these data.
+
+```{r}
+#| label: sea_histogram
+#| echo: true
+hist(mbita_schisto$sea, main = "SEA distribution", xlab = "SEA")
+```
+All three (Sm25 and Sm-EPG not shown) of the quantitative variables are highly skewed, which could affect assumptions of normality in downstream analyses. Transformations such as log or square root may be necessary, and appropriate statistical methods that account for skewed distributions should be considered when modeling or testing differences.
+
+Finally, the following table shows the prevalence of infection as measured by positive SEA or Sm25 reactivity.
+
+```{r}
+#| label: sero_prev
+#| echo: true
+# Calculates pooled prevalence per year and arm
+make_prev_summary <- function(data, var) {
+  var <- enquo(var)
+  
+  data %>%
+    group_by(year, arm) %>%
+    summarize(
+      n_psac = n_distinct(pid),
+      n_measures = sum(!is.na(!!var)),
+      n_positive = sum(!!var, na.rm = TRUE),
+      prevalence = round(n_positive / n_measures, 3),
+      .groups = "drop"
+    ) %>%
+    mutate(variable = quo_name(var), .before = 1)
+}
+make_prev_summary(mbita_schisto, sea_or_sm25_pos) %>%
+  knitr::kable(
+    col.names = c("Variable", "Year", "Arm", "No. PSAC", "No. measurements",
+                  "No. positive", "Prevalence (%)")
+  )
+```
+
+# Summarize baseline characteristics
+
+The following code constructs a manuscript style Table 1 for assessing individual- and cluster-level baseline characteristics. These results are helpful in assessing how well randomization worked in the study. The full code is not shown here for brevity.
+
+```{r}
+#| label: table1_setup
+#| echo: true
+#| message: false
+#| warning: false
+#| results: hide
+source(paste0(here::here(), "/R/3-baseline-table1.R"))
+```
+
+```{r}
+#| label: table1
+#| echo: false
+#| results: 'asis'
+
+cat('<div style="text-align:left; font-weight:bold; margin-bottom:0.3em;">
+Table 1. Individual- and cluster-level baseline characteristics and infection prevalence by treatment arm.
+</div>')
+
+# Print the table
+table1_html %>%
+  kable(
+    format = "html",
+    escape = FALSE,
+    align = c("l", "c", "c")
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center",
+    bootstrap_options = c("striped", "hover", "condensed")
+  ) %>%
+  row_spec(
+    which(table1$Characteristic %in% c("Individual-level", "Cluster-level")),
+    bold = TRUE,
+    extra_css = "border-bottom: 2px solid black;"
+  )
+```
+
+<br>
+At baseline, the two study arms were generally well balanced. Both arms had similar average cluster sizes (35.9 vs. 38.8 children per cluster) with comparable variability. Demographic characteristics were nearly identical: the mean age of children was 3.5 years in both arms, with narrow standard deviations, and the proportion of male children was also similar (47.6% vs. 46.3%). These observations indicate excellent demographic balance between the arms.
+
+In terms of infection measures, the mean cluster-level SEA prevalence was somewhat lower in the CWT arm (41.4%) compared to the SBT arm (51.1%), though the large standard deviations (29.3 vs. 25.3) suggest substantial cluster-to-cluster variability and overlap. Mean cluster-level Sm25 prevalence was nearly identical (13.5% vs. 14.4%), and mean cluster-level Kato-Katz prevalence was slightly lower in the CWT arm (24%) than in the SBT arm (29%), again with wide variability across clusters. Overall, while there are some modest differences in baseline infection prevalence, the groups are well balanced on demographics and cluster size.
+
+Reflecting on the study design, this was a cluster randomized trial with 30 villages randomized 1:1 into the two arms. With only 15 clusters per arm, some chance imbalances are more likely than in individually randomized trials with thousands of participants. The observed balance in demographic characteristics and cluster sizes suggests that the randomization performed as intended, while the modest differences in SEA and Kato-Katz prevalence may reflect natural variation between communities or the limited number of clusters.
+
+In conclusion, the arms appear well balanced with respect to demographics and cluster sizes, with only minor differences in baseline infection prevalence that may not be unexpected given the small number of clusters per arm and natural variability in infection rates among villages.
+
+# Compare seroprevalence between groups
+
+Calculate observed pooled sero-prevalence for 2013 and 2014 combined at the cluster, arm level.
+
+```{r}
+#| label: obs_sero_prev
+#| echo: true
+# Calculate pooled sero-prevalence for 2013 and 2014 combined at the cluster,
+# arm level
+cluster_post <- mbita_schisto %>%
+  filter(post == 1) %>%
+  group_by(vid, arm) %>%
+  summarize(
+    n_pos = sum(sea_or_sm25_pos == 1),
+    n_measured = sum(!is.na(sea_or_sm25_pos)),
+    prev = if_else(n_measured > 0, n_pos / n_measured, NA_real_),
+    .groups = "drop"
+  )
+
+# Observed mean pooled prevalence for each treatment group
+cluster_post %>%
+  group_by(arm) %>%
+  summarize(
+    n_clusters = n(),
+    mean_prev = round(mean(prev, na.rm = TRUE), 3),
+    sd_prev   = round(sd(prev, na.rm = TRUE), 3),
+    median_prev = round(median(prev, na.rm = TRUE), 3),
+    iqr_prev = round(IQR(prev, na.rm = TRUE), 3)
+  ) %>%
+  knitr::kable(
+    col.names = c("Arm", "No. clusters", "Mean prevalence", "SD prevalence", 
+                  "Median prevalence", "IQR prevalence")
+  )
+```
+
+<br>
+A simple linear model can be used to test for differences at the cluster level.
+
+```{r}
+#| label: cluster_lm
+#| echo: true
+# Fit a very simple linear model to test for differences in mean prevalence
+lm_fit_cluster <- lm(prev ~ arm, data = cluster_post)
+summary(lm_fit_cluster)
+```
+
+<br>
+We can visualize the residuals for this model.
+
+```{r}
+#| label: cluster_lm_resid
+#| echo: true
+# Visualize residuals
+par(mfrow = c(1, 2))
+plot(lm_fit_cluster, which = 1)
+plot(lm_fit_cluster, which = 2)
+```
+
+<br>
+Extract and print the linear model results.
+
+```{r}
+#| label: cluster_lm_results
+#| echo: true
+# Visualize residuals
+# Extract lm results
+# Effect estimate with confidence interval and p-value:
+lm_coef_est <- coef(lm_fit_cluster)["armCWT"]
+
+# 95% confidence interval
+lm_conf_int <- confint(lm_fit_cluster)["armCWT", ]
+
+# p-value
+lm_pval <- summary(lm_fit_cluster)$coefficients["armCWT", "Pr(>|t|)"]
+
+# Print lm results nicely
+cat(
+  "Linear model (CWT vs SBT):\n",
+  "Estimate:",
+  round(lm_coef_est, 3),
+  "\n",
+  "95% CI: [",
+  round(lm_conf_int[1], 3),
+  ",",
+  round(lm_conf_int[2], 3),
+  "]\n",
+  "p-value:",
+  signif(lm_pval, 5),
+  "\n"
+)
+```
+
+<br>
+As a sensitivity check, we might fit a GEE model at the individual level which accounts for the within village correlation. Because the cluster sizes are relatively small, the standard errors may be biased for this model.
+
+```{r}
+#| label: cluster_gee
+#| echo: true
+# Sensitivity analysis with individual-level GEE model
+post <- mbita_schisto %>%
+  filter(post == 1)
+
+# GEE with identity link: estimates prevalence difference directly
+gee_cluster <- geepack::geeglm(
+  sea_or_sm25_pos ~ arm,
+  id = vid,
+  data = post,
+  family = binomial(link = "identity"),
+  corstr = "exchangeable"
+)
+
+gee_cluster_summary <- summary(gee_cluster)
+gee_cluster_summary
+```
+
+<br>
+Extract and print the GEE results. We see that the estimate is very similar to the linear model estimate however the p-value is smaller. Because the cluster sizes are relatively small, the standard errors may be biased downward for this model (result closer to significance as we see).
+
+```{r}
+#| label: cluster_gee_results
+#| echo: true
+# Extract and print results
+gee_coef_est <- coef(gee_cluster_summary)["armCWT", "Estimate"]
+gee_se <- coef(gee_cluster_summary)["armCWT", "Std.err"]
+gee_pval <- coef(gee_cluster_summary)["armCWT", "Pr(>|W|)"]
+
+# 95% CI using normal approximation
+gee_lower <- gee_coef_est - 1.96 * gee_se
+gee_upper <- gee_coef_est + 1.96 * gee_se
+
+# Print GEE results nicely
+cat(
+  "GEE (CWT vs SBT):\n",
+  "Estimate:",
+  round(gee_coef_est, 3),
+  "\n",
+  "95% CI: [",
+  round(gee_lower, 3),
+  ",",
+  round(gee_upper, 3),
+  "]\n",
+  "p-value:",
+  signif(gee_pval, 3),
+  "\n"
+)
+```
+
+<br>
+Summarize findings in Table 2.
+
+```{r}
+#| label: table2_setup
+#| echo: true
+#| results: 'asis'
+
+# Observed values
+observed_tbl <- cluster_post %>%
+  group_by(arm) %>%
+  summarize(
+    n_clusters = n(),
+    mean_prev = mean(prev, na.rm = TRUE),
+    sd_prev   = sd(prev, na.rm = TRUE),
+    median_prev = median(prev, na.rm = TRUE),
+    iqr_prev = IQR(prev, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Analysis = paste0(arm, " (n = ", n_clusters, " clusters)"),
+    Result = paste0(
+      "Mean ",
+      round(mean_prev, 3),
+      " (SD ",
+      round(sd_prev, 3),
+      "); ",
+      "Median ",
+      round(median_prev, 3),
+      " (IQR ",
+      round(iqr_prev, 3),
+      ")"
+    ),
+    `p-value` = ""
+  ) %>%
+  select(Analysis, Result, `p-value`)
+
+# Model results table
+model_tbl <- tribble(
+  ~ Analysis,
+  ~ Result,
+  ~ `p-value`,
+  "Linear model (cluster-level)",
+  paste0(
+    round(lm_coef_est, 3),
+    " (95% CI ",
+    round(lm_conf_int[1], 3),
+    ", ",
+    round(lm_conf_int[2], 3),
+    ")"
+  ),
+  as.character(signif(lm_pval, 4)),
+  "GEE (individual-level)",
+  paste0(
+    round(gee_coef_est, 3),
+    " (95% CI ",
+    round(gee_lower, 3),
+    ", ",
+    round(gee_upper, 3),
+    ")"
+  ),
+  as.character(signif(gee_pval, 4))
+)
+
+# Combine observed and model results
+table2 <- bind_rows(
+  tibble(
+    Analysis = "Observed cluster-level prevalence",
+    Result = "",
+    `p-value` = ""
+  ),
+  observed_tbl,
+  tibble(
+    Analysis = "Statistical comparisons",
+    Result = "",
+    `p-value` = ""
+  ),
+  model_tbl
+)
+
+cat('<div style="text-align:left; font-weight:bold; margin-bottom:0.3em;">
+Table 2. Observed and estimated differences in sero-prevalence between CWT and SBT arms, post-intervention period (2013–2014).
+</div>')
+```
+
+```{r}
+#| label: table2
+#| echo: false
+#| message: false
+#| warning: false
+# Create HTML table
+kable(
+  table2,
+  format = "html",
+  escape = FALSE
+) %>%
+  kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed")
+  ) %>%
+  row_spec(c(1, nrow(observed_tbl) + 2), bold = TRUE)
+```
+
+<br>
+The observed mean post-intervention seroprevalence was slightly lower in the CWT arm (0.405) compared with the SBT arm (0.497). The primary linear model analysis estimated a difference of –0.092 (95% CI –0.268 to 0.083, p = 0.29), indicating no statistically significant difference between arms. Sensitivity analyses using a GEE model gave similar conclusions.
+
+# Permutation test
+
+We can perform a non-parametric permutation test to get an exact p-value for the comparison between groups. The following code implements this test.
+
+```{r}
+#| label: permutation_test
+#| echo: true
+# Calculate observed difference for test statistic
+# Unit of analysis is the cluster, calculate the mean for each arm
+obs_diff <-
+  with(cluster_post, mean(prev[arm == "CWT"]) - mean(prev[arm == "SBT"]))
+
+# Set-up values to run test
+set.seed(1001)  # for reproducibility
+n_perm <- 50000  # number of permutations
+perm_diff <- numeric(n_perm) # vector to hold all permuted statistics
+
+# Vector of cluster-level prevalence
+prev <- cluster_post$prev
+
+# Original treatment arms
+arm_orig <- cluster_post$arm
+
+for (i in 1:n_perm) {
+  # shuffle cluster labels, keeping cluster prevalences fixed
+  arm_perm <- sample(arm_orig)
+  
+  # compute difference in means for permuted arms
+  perm_diff[i] <- mean(prev[arm_perm == "CWT"]) - mean(prev[arm_perm == "SBT"])
+}
+
+# Calculate p-value as proportion more extreme than test statistic
+p_perm <- mean(abs(perm_diff) >= abs(obs_diff))
+p_perm
+```
+
+To visualize the test, we can plot the distribution of the test statistic under the null.
+
+```{r}
+#| label: visualize_permutation_test
+#| echo: true
+# Plot histogram
+hist(
+  perm_diff,
+  breaks = 50,
+  main = "Permutation distribution of mean difference",
+  xlab = "Difference in mean prevalence (CWT − SBT)",
+  col = "lightgray",
+  border = "white"
+)
+
+# Shade extreme values (two-sided)
+extreme <- abs(perm_diff) >= abs(obs_diff)
+hist(
+  perm_diff[extreme],
+  breaks = 50,
+  col = "red",
+  border = "white",
+  add = TRUE
+)
+
+# Add observed statistic line
+abline(v = obs_diff,
+       col = "darkred",
+       lwd = 2)
+
+# Add caption with p-value
+mtext(
+  paste0("Permutation p-value (two-sided) = ", round(p_perm, 3)),
+  side = 3,
+  line = 0.5,
+  cex = 0.9
+)
+```
+
+<br>
+The design-based permutation test confirms the findings from the linear model and GEE analyses.
