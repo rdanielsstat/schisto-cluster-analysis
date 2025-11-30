@@ -352,87 +352,121 @@ display: none;
 </div>
 
 
-<div id="data-analysis-assessment" class="section level1">
-<h1>Data Analysis Assessment</h1>
-<p>Statistician Position at NCIRE</p>
-<p><strong>Prepared by:</strong> Rob Daniels</p>
-<p><strong>Email:</strong> <a href="mailto:rdanielsstat@gmail.com" class="email">rdanielsstat@gmail.com</a></p>
-<p><strong>Date:</strong> 10/6/2025</p>
-<p><strong>For:</strong> Drs. Kelly and Rubin, NCIRE</p>
+<div id="cluster-randomized-trial-analysis" class="section level1">
+<h1>📘 Cluster Randomized Trial Analysis</h1>
+<p><strong>Author:</strong> Rob Daniels, MS, MPH, CPH<br />
+<strong>Email:</strong> <a href="mailto:rdanielsstat@gmail.com" class="email">rdanielsstat@gmail.com</a></p>
+<p>This repository contains a fully reproducible analysis workflow for a
+<strong>cluster randomized trial (CRT)</strong>, demonstrating best
+practices in statistical programming, project organization, and
+reproducible research.</p>
+<p>The project includes data processing, descriptive statistics,
+treatment-group comparisons, and a permutation-based inference procedure
+that accounts for clustering. It is designed to demonstrate clear
+workflow structure and proper statistical methods for analyzing CRT data
+in R.</p>
 <hr />
 <div id="overview" class="section level2">
 <h2>Overview</h2>
-<p>This folder contains R scripts and associated outputs for the
-“Proctor Data Analysis Assessment” for the NCIRE Statistician
-position.</p>
-<p>The project demonstrates data processing, descriptive statistics,
-table generation, and statistical comparison of treatment groups,
-including a permutation test.</p>
-<p>I recommend running each script sequentially, reviewing the output,
-and reading the comments, which provide both the answers to the
-assessment questions and details on my approach to the analysis.</p>
-<p>All required R packages are listed in <code>0-config.R</code>. The <a href="https://cran.r-project.org/package=here"><code>here</code></a>
-package is used for path management.</p>
-<p>Throughout this project, I have attempted to follow best practices
-for reproducible workflows and project organization as presented in the
-<a href="https://proctor-ucsf.github.io/dcc-handbook/" target="_blank">Proctor Foundation Data Science Handbook</a>. I used
-ChatGPT for help with coding and phrasing. The project design, analyses,
-organization, methods, and presentation choices were all my own
-decisions.</p>
+<p>This project demonstrates:</p>
+<ul>
+<li>Clean and modular data processing<br />
+</li>
+<li>Descriptive statistics and baseline characterization<br />
+</li>
+<li>Construction of publication-quality tables<br />
+</li>
+<li>Treatment-group comparisons using methods appropriate for clustered
+data<br />
+</li>
+<li>A <strong>cluster-aware permutation test</strong>, implemented from
+first principles<br />
+</li>
+<li>A reproducible, well-organized R workflow using modern tools</li>
+</ul>
+<p>All packages required to run the analysis are listed in
+<code>0-config.R</code>.<br />
+The <code>here</code> package is used for robust path management and
+project organization.</p>
+<p>The project structure and workflow reflect best practices in
+reproducible data science (modular scripts, literate comments,
+consistent naming, and output separation).</p>
 <hr />
 </div>
 <div id="folder-structure" class="section level2">
 <h2>Folder Structure</h2>
 <pre class="text"><code>base folder/
-├── 0-config.R                  # Project configuration (libraries, paths, settings)
+├── 0-config.R                  # Libraries, global settings, path configuration
 ├── R/
-│   ├── 0-project-functions.R   # Custom functions used in the project
-│   ├── 1-process-data.R        # Processes the data
-│   ├── 2-describe-data.R       # Descriptive statistics
-│   ├── 3-baseline-table1.R     # Creates Table 1
-│   ├── 4-compare-groups.R      # Compare treatment groups; creates Table 2
-│   ├── 5-permutation-test.R    # Permutation test
-│   └── run-all.R               # Convenience script to run all steps sequentially
-├── tables/                     # Output tables (Table 1 and Table 2)
-├── figures/                    # Output figures
-└── data/final/                 # Input study data files</code></pre>
+│   ├── 0-project-functions.R   # Custom functions used throughout the workflow
+│   ├── 1-process-data.R        # Data cleaning and preparation
+│   ├── 2-describe-data.R       # Descriptive summaries and exploratory analysis
+│   ├── 3-baseline-table1.R     # Construction of baseline Table 1
+│   ├── 4-compare-groups.R      # Treatment comparisons (cluster-aware)
+│   ├── 5-permutation-test.R    # Cluster-level permutation test
+│   └── run-all.R               # Convenience script to run the full workflow
+├── tables/                     # Generated tables (e.g., baseline &amp; comparison)
+├── figures/                    # Generated plots/figures
+└── data/final/                 # Input data files (cleaned or analysis-ready)</code></pre>
 <hr />
 </div>
 <div id="how-to-run-the-analysis" class="section level2">
-<h2>How to Run the Analysis</h2>
-<p>You can reproduce the analysis in three different ways:</p>
-<p><strong>Option 1: Sequential run using an R Project with
-<code>here()</code></strong></p>
-<ul>
-<li>Create a new R Project in the base folder (where the unzipped files
-are located).</li>
-<li>The <code>0-config.R</code> script uses the <code>here()</code>
-package to manage paths, so with the project file in place you should be
-able to run scripts without editing paths manually.</li>
-<li>Once the project is set up, run the scripts in the following
-order:</li>
-</ul>
+<h2>▶️ How to Run the Analysis</h2>
+<p>You can reproduce the analysis in three ways:</p>
+<hr />
+<div id="option-1-recommended-use-an-r-project-with-here" class="section level3">
+<h3><strong>Option 1: Recommended – Use an R Project with
+here()</strong></h3>
+<ol style="list-style-type: decimal">
+<li>Create an R Project (<code>.Rproj</code>) in the base folder.<br />
+</li>
+<li>Install required packages (<code>0-config.R</code> lists
+them).<br />
+</li>
+<li>Run the scripts in the following sequence:</li>
+</ol>
 <pre class="text"><code>R/1-process-data.R
 R/2-describe-data.R
 R/3-baseline-table1.R
 R/4-compare-groups.R
 R/5-permutation-test.R</code></pre>
-<p><strong>Option 2: Run scripts sequentially and manually update folder
-paths</strong></p>
+<p>Paths will resolve automatically using <code>here()</code>.</p>
+</div>
+<div id="option-2-manual-script-execution" class="section level3">
+<h3><strong>Option 2: Manual Script Execution</strong></h3>
+<p>If not using an R Project:</p>
+<ol style="list-style-type: decimal">
+<li>Open each script in the <code>R/</code> folder.<br />
+</li>
+<li>Update file paths at the top of each script to match your
+machine.<br />
+</li>
+<li>Run scripts in the sequence listed above.</li>
+</ol>
+<hr />
+</div>
+<div id="option-3-run-the-entire-workflow-at-once" class="section level3">
+<h3><strong>Option 3: Run the Entire Workflow at Once</strong></h3>
+<p>Use the master script:</p>
+<p><code>R/run-all.R</code></p>
+<p>This executes the complete workflow sequentially and outputs tables,
+figures, and console results.</p>
+</div>
+</div>
+<div id="notes" class="section level2">
+<h2>📌 Notes</h2>
 <ul>
-<li>Open each script in the <code>R/</code> folder and run them one by
-one in the order above.</li>
-<li>If you do not use an R Project and the <code>here()</code> package,
-you will need to manually edit the file paths at the top of each script
-to match your local folder structure.</li>
+<li>The project is structured to reflect modern, reproducible data
+science practices.<br />
+</li>
+<li>All analyses and code organization choices were made intentionally
+to demonstrate principled statistical workflow, clear documentation, and
+reproducible design.<br />
+</li>
+<li>No external dependencies beyond standard R packages are
+required.</li>
 </ul>
-<p><strong>Option 3: Use the master script</strong></p>
-<ul>
-<li>Run <code>R/run-all.R</code> to execute the full workflow
-sequentially.</li>
-<li>This script outputs results to the R console, Plots pane, and Viewer
-window.</li>
-</ul>
+<hr />
 </div>
 </div>
 

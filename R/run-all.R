@@ -1,6 +1,5 @@
 # ------------------------------------------------------------------------------
 # Project: Schistosomiasis Cluster Randomized Trial Analysis
-#          (NCIRE position assessment, October 2025)
 # Author: Rob Daniels (rdanielsstat@gmail.com)
 # Description: Master script to run all analysis scripts.
 #-------------------------------------------------------------------------------

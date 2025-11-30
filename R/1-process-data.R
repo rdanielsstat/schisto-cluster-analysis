@@ -1,6 +1,5 @@
 # ------------------------------------------------------------------------------
 # Project: Schistosomiasis Cluster Randomized Trial Analysis
-#          (NCIRE position assessment, October 2025)
 # Author: Rob Daniels (rdanielsstat@gmail.com)
 # Description: Loads, merges, and pre-processes the main study data set. Defines
 # factors and derived variables. Confirms key dimensions.

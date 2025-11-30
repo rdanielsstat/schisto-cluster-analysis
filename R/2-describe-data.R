@@ -1,6 +1,5 @@
 # ------------------------------------------------------------------------------
 # Project: Schistosomiasis Cluster Randomized Trial Analysis
-#          (NCIRE position assessment, October 2025)
 # Author: Rob Daniels (rdanielsstat@gmail.com)
 # Description: Produces descriptive summaries of study data.
 # - Counts of pre-school age children (PSAC) per year, arm, summarized across

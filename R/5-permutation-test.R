@@ -1,6 +1,5 @@
 # ------------------------------------------------------------------------------
 # Project: Schistosomiasis Cluster Randomized Trial Analysis
-#          (NCIRE position assessment, October 2025)
 # Author: Rob Daniels (rdanielsstat@gmail.com)
 # Description: Perform a permutation test for the difference between treatment
 # arms post-treatment.

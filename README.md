@@ -1,57 +1,61 @@
-# Data Analysis Assessment
-Statistician Position at NCIRE
+# 📘 Cluster Randomized Trial Analysis
 
-**Prepared by:** Rob Daniels
+**Author:** Rob Daniels, MS, MPH, CPH  
+**Email:** rdanielsstat@gmail.com  
 
-**Email:** rdanielsstat@gmail.com
+This repository contains a fully reproducible analysis workflow for a **cluster randomized trial (CRT)**, demonstrating best practices in statistical programming, project organization, and reproducible research.
 
-**Date:** 10/6/2025
-
-**For:** Drs. Kelly and Rubin, NCIRE
+The project includes data processing, descriptive statistics, treatment-group comparisons, and a permutation-based inference procedure that accounts for clustering. It is designed to demonstrate clear workflow structure and proper statistical methods for analyzing CRT data in R.
 
 ---
 
 ## Overview
 
-This folder contains R scripts and associated outputs for the "Proctor Data Analysis Assessment" for the NCIRE Statistician position.
+This project demonstrates:
 
-The project demonstrates data processing, descriptive statistics, table generation, and statistical comparison of treatment groups, including a permutation test.
+- Clean and modular data processing  
+- Descriptive statistics and baseline characterization  
+- Construction of publication-quality tables  
+- Treatment-group comparisons using methods appropriate for clustered data  
+- A **cluster-aware permutation test**, implemented from first principles  
+- A reproducible, well-organized R workflow using modern tools
 
-I recommend running each script sequentially, reviewing the output, and reading the comments, which provide both the answers to the assessment questions and details on my approach to the analysis.
+All packages required to run the analysis are listed in `0-config.R`.  
+The `here` package is used for robust path management and project organization.
 
-All required R packages are listed in `0-config.R`. The [`here`](https://cran.r-project.org/package=here) package is used for path management.
-
-Throughout this project, I have attempted to follow best practices for reproducible workflows and project organization as presented in the [Proctor Foundation Data Science Handbook](https://proctor-ucsf.github.io/dcc-handbook/){target="_blank"}. I used ChatGPT for help with coding and phrasing. The project design, analyses, organization, methods, and presentation choices were all my own decisions.
+The project structure and workflow reflect best practices in reproducible data science (modular scripts, literate comments, consistent naming, and output separation).
 
 ---
 
 ## Folder Structure
 ```text
 base folder/
-├── 0-config.R                  # Project configuration (libraries, paths, settings)
+├── 0-config.R                  # Libraries, global settings, path configuration
 ├── R/
-│   ├── 0-project-functions.R   # Custom functions used in the project
-│   ├── 1-process-data.R        # Processes the data
-│   ├── 2-describe-data.R       # Descriptive statistics
-│   ├── 3-baseline-table1.R     # Creates Table 1
-│   ├── 4-compare-groups.R      # Compare treatment groups; creates Table 2
-│   ├── 5-permutation-test.R    # Permutation test
-│   └── run-all.R               # Convenience script to run all steps sequentially
-├── tables/                     # Output tables (Table 1 and Table 2)
-├── figures/                    # Output figures
-└── data/final/                 # Input study data files
+│   ├── 0-project-functions.R   # Custom functions used throughout the workflow
+│   ├── 1-process-data.R        # Data cleaning and preparation
+│   ├── 2-describe-data.R       # Descriptive summaries and exploratory analysis
+│   ├── 3-baseline-table1.R     # Construction of baseline Table 1
+│   ├── 4-compare-groups.R      # Treatment comparisons (cluster-aware)
+│   ├── 5-permutation-test.R    # Cluster-level permutation test
+│   └── run-all.R               # Convenience script to run the full workflow
+├── tables/                     # Generated tables (e.g., baseline & comparison)
+├── figures/                    # Generated plots/figures
+└── data/final/                 # Input data files (cleaned or analysis-ready)
 ```
 ---
 
-## How to Run the Analysis
+## ▶️ How to Run the Analysis
 
-You can reproduce the analysis in three different ways:
+You can reproduce the analysis in three ways:
 
-**Option 1: Sequential run using an R Project with `here()`**
+---
 
-- Create a new R Project in the base folder (where the unzipped files are located).
-- The `0-config.R` script uses the `here()` package to manage paths, so with the project file in place you should be able to run scripts without editing paths manually.
-- Once the project is set up, run the scripts in the following order:
+### **Option 1: Recommended – Use an R Project with here()**
+
+1. Create an R Project (`.Rproj`) in the base folder.  
+2. Install required packages (`0-config.R` lists them).  
+3. Run the scripts in the following sequence:
 
 ```text
 R/1-process-data.R
@@ -61,12 +65,30 @@ R/4-compare-groups.R
 R/5-permutation-test.R
 ```
 
-**Option 2: Run scripts sequentially and manually update folder paths**
-  
-- Open each script in the `R/` folder and run them one by one in the order above.
-- If you do not use an R Project and the `here()` package, you will need to manually edit the file paths at the top of each script to match your local folder structure.
+Paths will resolve automatically using `here()`.
 
-**Option 3: Use the master script**
+### **Option 2: Manual Script Execution**
 
-- Run `R/run-all.R` to execute the full workflow sequentially.
-- This script outputs results to the R console, Plots pane, and Viewer window.
+If not using an R Project:
+
+1. Open each script in the `R/` folder.  
+2. Update file paths at the top of each script to match your machine.  
+3. Run scripts in the sequence listed above.
+
+---
+
+### **Option 3: Run the Entire Workflow at Once**
+
+Use the master script:
+
+`R/run-all.R`
+
+This executes the complete workflow sequentially and outputs tables, figures, and console results.
+
+## 📌 Notes
+
+- The project is structured to reflect modern, reproducible data science practices.  
+- All analyses and code organization choices were made intentionally to demonstrate principled statistical workflow, clear documentation, and reproducible design.  
+- No external dependencies beyond standard R packages are required.
+
+---
