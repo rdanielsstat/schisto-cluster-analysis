@@ -12,6 +12,9 @@ format:
     toc: true
     toc-floating: true
     self-contained: true
+    include-in-header: 
+      text: |
+        <meta name="robots" content="noindex, nofollow">
 ---
 
 # Description
