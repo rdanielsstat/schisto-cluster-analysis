@@ -361,10 +361,15 @@ display: none;
 practices in statistical programming, project organization, and
 reproducible research.</p>
 <p>The project includes data processing, descriptive statistics,
-treatment-group comparisons, and a permutation-based inference procedure
-that accounts for clustering. It is designed to demonstrate clear
-workflow structure and proper statistical methods for analyzing CRT data
-in R.</p>
+treatment-group comparisons using <strong>generalized estimating
+equations (GEE) and linear models</strong>, and a permutation test that
+accounts for clustering. It is designed to demonstrate clear workflow
+structure and proper statistical methods for analyzing CRT data in
+R.</p>
+<p>A Quarto file was also created that walks through the analysis
+end-to-end and can be accessed here: <a href="https://rdanielsstat.github.io/schisto-cluster-analysis/">schisto-cluster-analysis</a>.
+The R scripts provide additional technical details and remain the best
+way to work through the analysis step by step.</p>
 <hr />
 <div id="overview" class="section level2">
 <h2>Overview</h2>
@@ -443,7 +448,6 @@ machine.<br />
 </li>
 <li>Run scripts in the sequence listed above.</li>
 </ol>
-<hr />
 </div>
 <div id="option-3-run-the-entire-workflow-at-once" class="section level3">
 <h3><strong>Option 3: Run the Entire Workflow at Once</strong></h3>
@@ -451,6 +455,7 @@ machine.<br />
 <p><code>R/run-all.R</code></p>
 <p>This executes the complete workflow sequentially and outputs tables,
 figures, and console results.</p>
+<hr />
 </div>
 </div>
 <div id="notes" class="section level2">
@@ -466,7 +471,6 @@ reproducible design.<br />
 <li>No external dependencies beyond standard R packages are
 required.</li>
 </ul>
-<hr />
 </div>
 </div>
 

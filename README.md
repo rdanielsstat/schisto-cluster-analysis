@@ -5,7 +5,9 @@
 
 This repository contains a fully reproducible analysis workflow for a **cluster randomized trial (CRT)**, demonstrating best practices in statistical programming, project organization, and reproducible research.
 
-The project includes data processing, descriptive statistics, treatment-group comparisons, and a permutation-based inference procedure that accounts for clustering. It is designed to demonstrate clear workflow structure and proper statistical methods for analyzing CRT data in R.
+The project includes data processing, descriptive statistics, treatment-group comparisons using **generalized estimating equations (GEE) and linear models**, and a permutation test that accounts for clustering. It is designed to demonstrate clear workflow structure and proper statistical methods for analyzing CRT data in R.
+
+A Quarto file was also created that walks through the analysis end-to-end and can be accessed here: [schisto-cluster-analysis](https://rdanielsstat.github.io/schisto-cluster-analysis/). The R scripts provide additional technical details and remain the best way to work through the analysis step by step.
 
 ---
 
@@ -75,8 +77,6 @@ If not using an R Project:
 2. Update file paths at the top of each script to match your machine.  
 3. Run scripts in the sequence listed above.
 
----
-
 ### **Option 3: Run the Entire Workflow at Once**
 
 Use the master script:
@@ -85,10 +85,10 @@ Use the master script:
 
 This executes the complete workflow sequentially and outputs tables, figures, and console results.
 
+---
+
 ## 📌 Notes
 
 - The project is structured to reflect modern, reproducible data science practices.  
 - All analyses and code organization choices were made intentionally to demonstrate principled statistical workflow, clear documentation, and reproducible design.  
 - No external dependencies beyond standard R packages are required.
-
----
