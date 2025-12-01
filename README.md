@@ -51,8 +51,6 @@ base folder/
 
 You can reproduce the analysis in three ways:
 
----
-
 ### **Option 1: Recommended – Use an R Project with here()**
 
 1. Create an R Project (`.Rproj`) in the base folder.  
