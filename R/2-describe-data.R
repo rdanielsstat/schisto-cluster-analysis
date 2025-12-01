@@ -53,8 +53,8 @@ make_meas_summary(mbita_schisto, sm25)
 make_meas_summary(mbita_schisto, sm_epg)
 # 13% missing values in 2014 for stool-based measure
 
-# Assessment question: How many children were measured at baseline (2012) and
-# in subsequent survey visits based on blood- and stool-based measures of
+# Question: How many children were measured at baseline (2012) and in 
+# subsequent survey visits based on blood- and stool-based measures of 
 # infection? How complete were the measurements?
 
 # Answer: 1120, 1187, and 1356 at baseline, 2013, and 2014 respectively for
@@ -103,9 +103,8 @@ plot_hist_by_year_arm(mbita_schisto, sm_epg, bins = 10)
 # Many 0s for all 3 measures, highly skewed right for all 3
 
 
-# Assessment question: For quantitative variables, is there anything you see
-# about their distribution that might be important to consider in any
-# downstream analysis?
+# Question: For quantitative variables, is there anything about their 
+# distribution that might be important to consider in any downstream analysis?
 
 # Answer: All three variables are highly skewed, which could affect assumptions
 # of normality in downstream analyses. Transformations such as log or square

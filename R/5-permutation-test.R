@@ -9,8 +9,6 @@ source(paste0(here::here(), "/0-config.R"))
 source(paste0(here::here(), "/R/1-process-data.R"))
 source(paste0(here::here(), "/R/4-compare-groups.R"))
 
-# Bonus challenge
-
 # Calculate observed difference for test statistic
 # Unit of analysis is the cluster, calculate the mean for each arm
 obs_diff <-
@@ -77,8 +75,8 @@ mtext(
 
 dev.off()
 
-# Assessment question: How does your inference compare with your results from
-# the previous section?
+# Question: How does the inference compare with your results from the model
+# results?
 
 # Answer: The design-based permutation test confirms the findings from the
 # linear model and GEE analyses.
