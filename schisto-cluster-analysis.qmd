@@ -463,7 +463,7 @@ cat(
 ```
 
 <br>
-As a sensitivity check, we might fit a GEE model at the individual level which accounts for the within village correlation. Because the cluster sizes are relatively small, the standard errors may be biased for this model.
+As a sensitivity check, we might fit a GEE model at the individual level which accounts for the within village correlation. Because the cluster sizes are relatively small, the standard errors may be biased for this model. Values in this output are expressed as proportions, not percentages.
 
 ```{r}
 #| label: cluster_gee
@@ -486,7 +486,7 @@ gee_cluster_summary
 ```
 
 <br>
-Values in this output are expressed as proportions, not percentages. Extract and print the GEE results. We see that the estimate is very similar to the linear model estimate however the p-value is smaller. Because the cluster sizes are relatively small, the standard errors may be biased downward for this model (result closer to significance as we see).
+Extract and print the GEE results. We see that the estimate is very similar to the linear model estimate however the p-value is smaller. Because the cluster sizes are relatively small, the standard errors may be biased downward for this model (result closer to significance as we see).
 
 ```{r}
 #| label: cluster_gee_results
