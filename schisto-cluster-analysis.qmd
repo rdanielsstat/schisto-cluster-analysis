@@ -1,5 +1,5 @@
 ---
-title: "Schistosomiasis cluster randomized trial analysis"
+title: "Schistosomiasis Cluster Randomized Trial Analysis"
 author: "Rob Daniels"
 date: "`r Sys.Date()`"
 bibliography: bibliography/references.bib
@@ -17,18 +17,30 @@ format:
         <meta name="robots" content="noindex, nofollow">
 ---
 
-# Description
+## Description
 
-This project presents an independent analysis of publicly available field data from a schistosomiasis cluster randomized trial (CRT). The data can be downloaded [here](https://datadryad.org/dataset/doi:10.7272/Q6DZ06J3){target="_blank"}, and the study is described in [@Won2017] which can be accessed [here](https://pmc.ncbi.nlm.nih.gov/articles/PMC5462587/){target="_blank"}.
+An end-to-end reproducible analysis of a schistosomiasis cluster randomized trial (CRT), from data ingestion through modeling and reporting.
 
-The project demonstrates a statistical analysis workflow while showcasing modern data science tools, including:
+This project presents an independent analysis of publicly available field data from a schistosomiasis cluster randomized trial (CRT).
+
+- The data can be downloaded [here](https://datadryad.org/dataset/doi:10.7272/Q6DZ06J3){target="_blank"}.
+- The study is described in [@Won2017] which can be accessed [here](https://pmc.ncbi.nlm.nih.gov/articles/PMC5462587/){target="_blank"}.
+
+The analysis emphasizes transparent statistical reasoning, modern workflow tools, and high-quality communication.
+
+View the complete project structure, analysis files, and reproducible workflow on GitHub:  
+**[schisto-cluster-project](https://github.com/rdanielsstat/schisto-cluster-analysis)**
+
+## Tools and workflow
 
 - **Version control & reproducibility:** GitHub, Quarto, Markdown, bibliographic integration, `renv`, and structured workflows
 - **Statistical programming:** R
 - **Visualization & reporting:** manuscript-quality tables, HTML, `ggplot2`
-- **Statistical methods:** linear model, diagnostics, GEE, permutation tests
+- **Statistical methods:** linear model, diagnostics, generalized estimating equations (GEE), permutation test
 
-Many organizational ideas were inspired by the [Proctor Foundation Data Science Handbook](https://proctor-ucsf.github.io/dcc-handbook/){target="_blank"} and [R for Data Science (2e)](https://r4ds.hadley.nz/){target="_blank"}. For questions or feedback, feel free to reach out at [rdanielsstat@gmail.com](mailto:rdanielsstat@gmail.com).
+Many organizational ideas were inspired by the [Proctor Foundation Data Science Handbook](https://proctor-ucsf.github.io/dcc-handbook/){target="_blank"} and [R for Data Science (2e)](https://r4ds.hadley.nz/){target="_blank"}.
+
+For questions or feedback, feel free to reach out at [rdanielsstat@gmail.com](mailto:rdanielsstat@gmail.com).
 
 ```{r}
 #| label: setup
@@ -39,7 +51,7 @@ source("./0-config.R")
 source("./R/0-project-functions.R")
 ```
 
-# Read and process the data
+## Read and process the data
 
 This study is comprised of measurements from 3,663 pre-school age children (PSAC) from 30 villages in Western Kenya. Two blood tests and one stool test were used to assess infection with *Schistosoma* spp., the parasites that cause [schistosomiasis](https://www.cdc.gov/dpdx/schistosomiasis/index.html){target="_blank"}. Data were collected at three different times: in 2012 (before treatment began), and again in 2013 and 2014 (after treatment started). The study was designed as a cluster randomized trial, meaning that entire villages, not individual children, were randomly assigned to one of two treatment arms. In 15 villages, treatment was provided only through schools (SBT), while in the other 15 villages, treatment was offered to the whole community (CWT).
 
@@ -93,7 +105,7 @@ mbita_schisto <- mbita_schisto %>%
 summary(mbita_schisto)
 ```
 
-# Describe the data
+## Describe the data
 
 The following table shows the number of pre-school age children (PSAC) per year and study arm. The summary statistics are based on counts of PSAC per village (cluster).
 
@@ -296,7 +308,7 @@ make_prev_summary <- function(data, var) {
       n_psac = n_distinct(pid),
       n_measures = sum(!is.na(!!var)),
       n_positive = sum(!!var, na.rm = TRUE),
-      prevalence = round(n_positive / n_measures, 3),
+      prevalence = round(100 * n_positive / n_measures, 1),
       .groups = "drop"
     ) %>%
     mutate(variable = quo_name(var), .before = 1)
@@ -308,7 +320,7 @@ make_prev_summary(mbita_schisto, sea_or_sm25_pos) %>%
   )
 ```
 
-# Summarize baseline characteristics
+## Summarize baseline characteristics
 
 The following code constructs a manuscript style Table 1 for assessing individual- and cluster-level baseline characteristics. These results are helpful in assessing how well randomization worked in the study. The full code is not shown here for brevity.
 
@@ -358,7 +370,7 @@ Reflecting on the study design, this was a cluster randomized trial with 30 vill
 
 In conclusion, the arms appear well balanced with respect to demographics and cluster sizes, with only minor differences in baseline infection prevalence that may not be unexpected given the small number of clusters per arm and natural variability in infection rates among villages.
 
-# Compare seroprevalence between groups
+## Compare seroprevalence between groups
 
 Calculate observed pooled sero-prevalence for 2013 and 2014 combined at the cluster, arm level.
 
@@ -373,7 +385,7 @@ cluster_post <- mbita_schisto %>%
   summarize(
     n_pos = sum(sea_or_sm25_pos == 1),
     n_measured = sum(!is.na(sea_or_sm25_pos)),
-    prev = if_else(n_measured > 0, n_pos / n_measured, NA_real_),
+    prev = if_else(n_measured > 0, 100 * n_pos / n_measured, NA_real_),
     .groups = "drop"
   )
 
@@ -382,10 +394,10 @@ cluster_post %>%
   group_by(arm) %>%
   summarize(
     n_clusters = n(),
-    mean_prev = round(mean(prev, na.rm = TRUE), 3),
-    sd_prev   = round(sd(prev, na.rm = TRUE), 3),
-    median_prev = round(median(prev, na.rm = TRUE), 3),
-    iqr_prev = round(IQR(prev, na.rm = TRUE), 3)
+    mean_prev = round(mean(prev, na.rm = TRUE), 1),
+    sd_prev   = round(sd(prev, na.rm = TRUE), 1),
+    median_prev = round(median(prev, na.rm = TRUE), 1),
+    iqr_prev = round(IQR(prev, na.rm = TRUE), 1)
   ) %>%
   knitr::kable(
     col.names = c("Arm", "No. clusters", "Mean prevalence", "SD prevalence", 
@@ -474,7 +486,7 @@ gee_cluster_summary
 ```
 
 <br>
-Extract and print the GEE results. We see that the estimate is very similar to the linear model estimate however the p-value is smaller. Because the cluster sizes are relatively small, the standard errors may be biased downward for this model (result closer to significance as we see).
+Values in this output are expressed as proportions, not percentages. Extract and print the GEE results. We see that the estimate is very similar to the linear model estimate however the p-value is smaller. Because the cluster sizes are relatively small, the standard errors may be biased downward for this model (result closer to significance as we see).
 
 ```{r}
 #| label: cluster_gee_results
@@ -528,14 +540,14 @@ observed_tbl <- cluster_post %>%
     Analysis = paste0(arm, " (n = ", n_clusters, " clusters)"),
     Result = paste0(
       "Mean ",
-      round(mean_prev, 3),
+      round(mean_prev, 1),
       " (SD ",
-      round(sd_prev, 3),
+      round(sd_prev, 1),
       "); ",
       "Median ",
-      round(median_prev, 3),
+      round(median_prev, 1),
       " (IQR ",
-      round(iqr_prev, 3),
+      round(iqr_prev, 1),
       ")"
     ),
     `p-value` = ""
@@ -549,21 +561,21 @@ model_tbl <- tribble(
   ~ `p-value`,
   "Linear model (cluster-level)",
   paste0(
-    round(lm_coef_est, 3),
+    round(lm_coef_est, 1),
     " (95% CI ",
-    round(lm_conf_int[1], 3),
+    round(lm_conf_int[1], 1),
     ", ",
-    round(lm_conf_int[2], 3),
+    round(lm_conf_int[2], 1),
     ")"
   ),
   as.character(signif(lm_pval, 4)),
   "GEE (individual-level)",
   paste0(
-    round(gee_coef_est, 3),
+    round(100*gee_coef_est, 1),
     " (95% CI ",
-    round(gee_lower, 3),
+    round(100*gee_lower, 1),
     ", ",
-    round(gee_upper, 3),
+    round(100*gee_upper, 1),
     ")"
   ),
   as.character(signif(gee_pval, 4))
@@ -609,9 +621,9 @@ kable(
 ```
 
 <br>
-The observed mean post-intervention seroprevalence was slightly lower in the CWT arm (0.405) compared with the SBT arm (0.497). The primary linear model analysis estimated a difference of –0.092 (95% CI –0.268 to 0.083, p = 0.29), indicating no statistically significant difference between arms. Sensitivity analyses using a GEE model gave similar conclusions.
+The observed mean post-intervention seroprevalence was slightly lower in the CWT arm (40.5) compared with the SBT arm (49.7). The primary linear model analysis estimated a difference of –9.2 (95% CI –26.8 to 8.3, p = 0.29), indicating no statistically significant difference between arms. Sensitivity analyses using a GEE model gave similar conclusions.
 
-# Permutation test
+## Permutation test
 
 We can perform a non-parametric permutation test to get an exact p-value for the comparison between groups. The following code implements this test.
 
