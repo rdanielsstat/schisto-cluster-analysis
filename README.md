@@ -19,7 +19,7 @@ This project demonstrates:
 - Descriptive statistics and baseline characterization  
 - Construction of publication-quality tables  
 - Treatment-group comparisons using methods appropriate for clustered data  
-- A **cluster-aware permutation test**, implemented from first principles  
+- A cluster-aware permutation test, implemented from first principles  
 - A reproducible, well-organized R workflow using modern tools
 
 All packages required to run the analysis are listed in `0-config.R`.  
